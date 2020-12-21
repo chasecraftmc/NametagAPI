@@ -26,10 +26,9 @@ class NameTag(private val player: Player, private val API: NametagAPI) {
     fun attemptUpdateAll() {
         val scoreboard = getScoreboard()
 
-        for (target in player.getNearbyEntities(30.0, 40.0, 30.0).filterIsInstance<Player>()) {
+        for (target in Bukkit.getOnlinePlayers()) {
             updateFor(target, scoreboard)
         }
-        updateFor(player, scoreboard)
 
         val toRemove = HashSet<UUID>()
 
