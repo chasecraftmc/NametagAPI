@@ -1,5 +1,6 @@
 package me.blazingtide.nametag.tag
 
+import org.bukkit.ChatColor
 import org.bukkit.entity.Player
 import org.bukkit.scoreboard.Team
 
@@ -17,6 +18,10 @@ interface NameTagAdapter {
      */
     fun transform(player: Player, team: Team) {
 
+    }
+
+    fun getColor(player: Player, target: Player): ChatColor? {
+        return null
     }
 
 }

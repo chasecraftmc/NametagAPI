@@ -59,12 +59,17 @@ class NameTag(private val player: Player, private val API: NametagAPI) {
             return
         }
 
-        val team = createTeam(scoreboard, target, prefixTranslated, suffixTranslated)
+        val team = createTeam(scoreboard, target)
 
         if (API.sizeConstraints && prefixTranslated != null) {
             team.prefix = prefixTranslated.substring(0, min(16, prefixTranslated.length))
         } else if (prefixTranslated != null) {
             team.prefix = prefixTranslated
+        }
+
+        val color = API.adapter.getColor(player, target)
+        if (color != null) {
+            team.color = color
         }
 
         if (suffixTranslated != null && API.sizeConstraints) {
@@ -74,7 +79,8 @@ class NameTag(private val player: Player, private val API: NametagAPI) {
         }
 
         if (!team.hasEntry(target.name)) {
-            team.addEntry(target.name)        }
+            team.addEntry(target.name)
+        }
 
         if (!cachedTeams.containsKey(target.uniqueId)) {
             cachedTeams[target.uniqueId] = team
@@ -93,7 +99,7 @@ class NameTag(private val player: Player, private val API: NametagAPI) {
         return id
     }
 
-    private fun createTeam(board: Scoreboard, player: Player, prefix: String?, suffix: String?): Team {
+    private fun createTeam(board: Scoreboard, player: Player): Team {
         if (cachedTeams.containsKey(player.uniqueId)) {
             return cachedTeams[player.uniqueId]!!
         }
