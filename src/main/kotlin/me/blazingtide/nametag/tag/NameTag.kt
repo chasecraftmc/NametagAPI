@@ -11,7 +11,7 @@ import kotlin.collections.HashSet
 import kotlin.math.min
 
 
-class NameTag(private val player: Player, private val API: NametagAPI) {
+class NameTag(private val player: Player, private val api: NametagAPI) {
 
     companion object {
         const val PREFIX = "NAME_TAG-"
@@ -20,7 +20,7 @@ class NameTag(private val player: Player, private val API: NametagAPI) {
     private val cachedTeams = HashMap<UUID, Team>()
 
     init {
-        println("[Nametag API] Created nametag for ${player.name}")
+        println("[Nametag api] Created nametag for ${player.name}")
     }
 
     fun attemptUpdateAll() {
@@ -49,8 +49,8 @@ class NameTag(private val player: Player, private val API: NametagAPI) {
     }
 
     fun updateFor(target: Player, scoreboard: Scoreboard) {
-        val prefix = API.adapter.getPrefix(player, target)
-        val suffix = API.adapter.getSuffix(player, target)
+        val prefix = api.adapter.getPrefix(player, target)
+        val suffix = api.adapter.getSuffix(player, target)
 
         val suffixTranslated = if (suffix != null) ChatColor.translateAlternateColorCodes('&', suffix) else null
         val prefixTranslated = if (prefix != null) ChatColor.translateAlternateColorCodes('&', prefix) else null
@@ -61,18 +61,18 @@ class NameTag(private val player: Player, private val API: NametagAPI) {
 
         val team = createTeam(scoreboard, target)
 
-        if (API.sizeConstraints && prefixTranslated != null) {
+        if (api.sizeConstraints && prefixTranslated != null) {
             team.prefix = prefixTranslated.substring(0, min(16, prefixTranslated.length))
         } else if (prefixTranslated != null) {
             team.prefix = prefixTranslated
         }
 
-        val color = API.adapter.getColor(player, target)
+        val color = api.adapter.getColor(player, target)
         if (color != null) {
             team.color = color
         }
 
-        if (suffixTranslated != null && API.sizeConstraints) {
+        if (suffixTranslated != null && api.sizeConstraints) {
             team.suffix = suffixTranslated.substring(0, min(16, suffixTranslated.length))
         } else if (suffixTranslated != null) {
             team.suffix = suffixTranslated
@@ -87,25 +87,21 @@ class NameTag(private val player: Player, private val API: NametagAPI) {
         }
     }
 
-    private fun getTeamId(board: Scoreboard, player: Player): String {
-        val uuidString = player.uniqueId.toString()
-        val id = (PREFIX + uuidString).substring(0, 16)
-
-        //Rarely happens but just incase to prevent players from getting kicked or having incorrect nametags
-        if (board.getTeam(id) != null) {
-            return getTeamId(board, player)
-        }
-
-        return id
-    }
-
     private fun createTeam(board: Scoreboard, player: Player): Team {
-        if (cachedTeams.containsKey(player.uniqueId)) {
-            return cachedTeams[player.uniqueId]!!
-        }
-        val team = board.registerNewTeam(getTeamId(board, player))
+        val teamName = api.adapter.getName(player = this.player, target = player)
 
-        API.adapter.transform(player, team)
+        if (cachedTeams.containsKey(player.uniqueId)) {
+            val team = cachedTeams[player.uniqueId]!!
+
+            if (team.name == teamName) {
+                return team
+            } else {
+                team.unregister()
+            }
+        }
+        val team = board.registerNewTeam(teamName)
+
+        api.adapter.transform(player, team)
 
         return team
     }

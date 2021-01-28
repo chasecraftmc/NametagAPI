@@ -34,4 +34,10 @@ class NametagAPI(plugin: JavaPlugin, val adapter: NameTagAdapter) {
         nameTag!!.attemptUpdateAll()
     }
 
+    fun getTeamId(player: Player): String {
+        val uuidString = player.uniqueId.toString()
+
+        return (NameTag.PREFIX + uuidString).substring(0, 16)
+    }
+
 }

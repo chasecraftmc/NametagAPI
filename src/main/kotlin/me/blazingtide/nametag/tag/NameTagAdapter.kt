@@ -24,4 +24,13 @@ interface NameTagAdapter {
         return null
     }
 
+    /**
+     * Returns the team name, meant for sorting player list name purposes
+     *
+     * Ensure the returned string is between 0 and 16 in character size
+     */
+    fun getName(player: Player, target: Player): String {
+        return target.uniqueId.toString()
+    }
+
 }
