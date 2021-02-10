@@ -96,6 +96,7 @@ class NameTag(private val player: Player, private val api: NametagAPI) {
             if (team.name == teamName) {
                 return team
             } else {
+                cachedTeams.remove(player.uniqueId)
                 team.unregister()
             }
         }
