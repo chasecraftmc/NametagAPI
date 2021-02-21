@@ -1,113 +1,43 @@
-package me.blazingtide.nametag.tag
+package me.blazingtide.nametag
 
-import me.blazingtide.nametag.NametagAPI
+import me.blazingtide.nametag.listener.NameTagListener
+import me.blazingtide.nametag.tag.NameTag
+import me.blazingtide.nametag.tag.NameTagAdapter
+import me.blazingtide.nametag.updater.NametagUpdater
 import org.bukkit.Bukkit
-import org.bukkit.ChatColor
 import org.bukkit.entity.Player
-import org.bukkit.scoreboard.Scoreboard
-import org.bukkit.scoreboard.Team
+import org.bukkit.plugin.java.JavaPlugin
 import java.util.*
-import kotlin.collections.HashSet
-import kotlin.math.min
+import kotlin.collections.HashMap
 
+class NametagAPI(plugin: JavaPlugin, val adapter: NameTagAdapter) {
 
-class NameTag(private val player: Player, private val api: NametagAPI) {
+    val instances = HashMap<UUID, NameTag>()
 
-    companion object {
-        const val PREFIX = "NAME_TAG-"
-    }
+    var shouldUpdate = false
 
-    private val cachedTeams = HashMap<UUID, Team>()
+    //Constraints on the sizes so prefixes & suffixes will be maxed to 16 characters
+    var sizeConstraints = false
 
     init {
-        println("[Nametag api] Created nametag for ${player.name}")
+        NametagUpdater(this).runTaskTimer(plugin, 20L, 20L)
+
+        Bukkit.getPluginManager().registerEvents(NameTagListener(this), plugin)
     }
 
-    fun attemptUpdateAll() {
-        val scoreboard = getScoreboard()
-
-        for (target in Bukkit.getOnlinePlayers()) {
-            updateFor(target, scoreboard)
-        }
-
-        val toRemove = HashSet<UUID>()
-
-        //Removes players that aren't online anymore
-        cachedTeams.keys.forEach {
-            if (Bukkit.getPlayer(it) == null) {
-                toRemove.add(it)
-            }
-        }
-
-        toRemove.forEach {
-            val team = cachedTeams[it] ?: return
-            team.unregister()
-            cachedTeams.remove(it)
-        }
-
-        player.scoreboard = scoreboard
+    fun setAutoUpdating(bool: Boolean) {
+        shouldUpdate = bool
     }
 
-    fun updateFor(target: Player, scoreboard: Scoreboard) {
-        val prefix = api.adapter.getPrefix(player, target)
-        val suffix = api.adapter.getSuffix(player, target)
-
-        val suffixTranslated = if (suffix != null) ChatColor.translateAlternateColorCodes('&', suffix) else null
-        val prefixTranslated = if (prefix != null) ChatColor.translateAlternateColorCodes('&', prefix) else null
-
-        if (suffixTranslated == null && prefixTranslated == null) {
-            return
-        }
-
-        val team = createTeam(scoreboard, target)
-
-        if (api.sizeConstraints && prefixTranslated != null) {
-            team.prefix = prefixTranslated.substring(0, min(16, prefixTranslated.length))
-        } else if (prefixTranslated != null) {
-            team.prefix = prefixTranslated
-        }
-
-        val color = api.adapter.getColor(player, target)
-        if (color != null) {
-            team.color = color
-        }
-
-        if (suffixTranslated != null && api.sizeConstraints) {
-            team.suffix = suffixTranslated.substring(0, min(16, suffixTranslated.length))
-        } else if (suffixTranslated != null) {
-            team.suffix = suffixTranslated
-        }
-
-        if (!team.hasEntry(target.name)) {
-            team.addEntry(target.name)
-        }
-
-        if (!cachedTeams.containsKey(target.uniqueId)) {
-            cachedTeams[target.uniqueId] = team
-        }
+    fun update(player: Player) {
+        val nameTag = instances[player.uniqueId]
+        nameTag!!.attemptUpdateAll()
     }
 
-    private fun createTeam(board: Scoreboard, player: Player): Team {
-        val teamName = api.adapter.getName(player = this.player, target = player)
+    fun getTeamId(player: Player): String {
+        val uuidString = player.uniqueId.toString()
 
-        if (cachedTeams.containsKey(player.uniqueId)) {
-            val team = cachedTeams[player.uniqueId]!!
-
-            if (team.name == teamName) {
-                return team
-            } else {
-                cachedTeams.remove(player.uniqueId)
-                team.unregister()
-            }
-        }
-        val team = board.registerNewTeam(teamName)
-
-        api.adapter.transform(player, team)
-
-        return team
+        return (NameTag.PREFIX + uuidString).substring(0, 16)
     }
 
-    private fun getScoreboard(): Scoreboard {
-        return if (player.scoreboard !== Bukkit.getScoreboardManager().mainScoreboard) player.scoreboard else Bukkit.getScoreboardManager().newScoreboard
-    }
 }
